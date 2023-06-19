@@ -1,53 +1,89 @@
-let result = document.getElementById("result");
-let searchBtn = document.getElementById("search-btn");
-let cityRef = document.getElementById("city");
+const wrapper = document.querySelector(".wrapper"),
+inputPart = document.querySelector(".input-part"),
+infoTxt = inputPart.querySelector(".info-txt"),
+inputField = inputPart.querySelector("input"),
+locationBtn = inputPart.querySelector("button"),
+weatherPart = wrapper.querySelector(".weather-part"),
+wIcon = weatherPart.querySelector("img"),
+arrowBack = wrapper.querySelector("header i");
 
-//Function to fetch weather details from api and display them
-let getWeather = () => {
-  let cityValue = cityRef.value;
-  //If input field is empty
-  if (cityValue.length == 0) {
-    result.innerHTML = `<h3 class="msg">Please enter a city name</h3>`;
-  }
-  //If input field is NOT empty
-  else {
-    let url = `https://api.openweathermap.org/data/2.5/weather?q=${cityValue}&appid=${key}&units=metric`;
-    //Clear the input field
-    cityRef.value = "";
-    fetch(url)
-      .then((resp) => resp.json())
-      //If city name is valid
-      .then((data) => {
-        console.log(data);
-        console.log(data.weather[0].icon);
-        console.log(data.weather[0].main);
-        console.log(data.weather[0].description);
-        console.log(data.name);
-        console.log(data.main.temp_min);
-        console.log(data.main.temp_max);
-        result.innerHTML = `
-        <h2>${data.name}</h2>
-        <h4 class="weather">${data.weather[0].main}</h4>
-        <h4 class="desc">${data.weather[0].description}</h4>
-        <img src="https://openweathermap.org/img/w/${data.weather[0].icon}.png">
-        <h1>${data.main.temp} &#176;</h1>
-        <div class="temp-container">
-            <div>
-                <h4 class="title">min</h4>
-                <h4 class="temp">${data.main.temp_min}&#176;</h4>
-            </div>
-            <div>
-                <h4 class="title">max</h4>
-                <h4 class="temp">${data.main.temp_max}&#176;</h4>
-            </div>
-        </div>
-        `;
-      })
-      //If city name is NOT valid
-      .catch(() => {
-        result.innerHTML = `<h3 class="msg">City not found</h3>`;
-      });
-  }
-};
-searchBtn.addEventListener("click", getWeather);
-window.addEventListener("load", getWeather);
+let api;
+
+inputField.addEventListener("keyup", e =>{
+    if(e.key == "Enter" && inputField.value != ""){
+        requestApi(inputField.value);
+    }
+});
+
+locationBtn.addEventListener("click", () =>{
+    if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(onSuccess, onError);
+    }else{
+        alert("Your browser not support geolocation api");
+    }
+});
+
+function requestApi(city){
+    api = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=your_api_key`;
+    fetchData();
+}
+
+function onSuccess(position){
+    const {latitude, longitude} = position.coords;
+    api = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=your_api_key`;
+    fetchData();
+}
+
+function onError(error){
+    infoTxt.innerText = error.message;
+    infoTxt.classList.add("error");
+}
+
+function fetchData(){
+    infoTxt.innerText = "Getting weather details...";
+    infoTxt.classList.add("pending");
+    fetch(api).then(res => res.json()).then(result => weatherDetails(result)).catch(() =>{
+        infoTxt.innerText = "Something went wrong";
+        infoTxt.classList.replace("pending", "error");
+    });
+}
+
+function weatherDetails(info){
+    if(info.cod == "404"){
+        infoTxt.classList.replace("pending", "error");
+        infoTxt.innerText = `${inputField.value} isn't a valid city name`;
+    }else{
+        const city = info.name;
+        const country = info.sys.country;
+        const {description, id} = info.weather[0];
+        const {temp, feels_like, humidity} = info.main;
+
+        if(id == 800){
+            wIcon.src = "icons/clear.svg";
+        }else if(id >= 200 && id <= 232){
+            wIcon.src = "icons/storm.svg";  
+        }else if(id >= 600 && id <= 622){
+            wIcon.src = "icons/snow.svg";
+        }else if(id >= 701 && id <= 781){
+            wIcon.src = "icons/haze.svg";
+        }else if(id >= 801 && id <= 804){
+            wIcon.src = "icons/cloud.svg";
+        }else if((id >= 500 && id <= 531) || (id >= 300 && id <= 321)){
+            wIcon.src = "icons/rain.svg";
+        }
+        
+        weatherPart.querySelector(".temp .numb").innerText = Math.floor(temp);
+        weatherPart.querySelector(".weather").innerText = description;
+        weatherPart.querySelector(".location span").innerText = `${city}, ${country}`;
+        weatherPart.querySelector(".temp .numb-2").innerText = Math.floor(feels_like);
+        weatherPart.querySelector(".humidity span").innerText = `${humidity}%`;
+        infoTxt.classList.remove("pending", "error");
+        infoTxt.innerText = "";
+        inputField.value = "";
+        wrapper.classList.add("active");
+    }
+}
+
+arrowBack.addEventListener("click", ()=>{
+    wrapper.classList.remove("active");
+});
