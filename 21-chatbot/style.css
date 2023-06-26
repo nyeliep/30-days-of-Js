@@ -8,11 +8,16 @@
 }
 body {
   background: #E3F2FD;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .chatbot-toggler {
-  position: fixed;
-  bottom: 30px;
+  /* position: fixed; */
+ 
+  /* bottom: 30px; */
   right: 35px;
+  margin-top: 20%;
   outline: none;
   border: none;
   height: 50px;
